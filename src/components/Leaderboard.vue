@@ -85,7 +85,9 @@ async function onSubmit() {
             <th class="py-2 pr-2">{{ t('leaderboard.rank') }}</th>
             <th class="py-2 pr-2">{{ t('leaderboard.name') }}</th>
             <th class="py-2 pr-2">{{ t('leaderboard.time') }}</th>
+            <th class="py-2 pr-2">{{ t('leaderboard.activeTime') }}</th>
             <th class="py-2 pr-2">{{ t('leaderboard.rebirths') }}</th>
+            <th class="py-2 pr-2">{{ t('leaderboard.trophies') }}</th>
             <th class="py-2">{{ t('leaderboard.score') }}</th>
           </tr>
         </thead>
@@ -98,7 +100,9 @@ async function onSubmit() {
             <td class="py-2 pr-2">{{ i + 1 }}</td>
             <td class="py-2 pr-2 truncate max-w-[10rem]">{{ run.name }}</td>
             <td class="py-2 pr-2 font-mono">{{ formatDuration(run.timeSeconds) }}</td>
+            <td class="py-2 pr-2 font-mono">{{ formatDuration(run.activeSeconds) }}</td>
             <td class="py-2 pr-2">{{ run.rebirths }}</td>
+            <td class="py-2 pr-2">🏆 {{ run.trophies }}</td>
             <td class="py-2 font-mono">{{ formatNumber(run.score) }}</td>
           </tr>
         </tbody>

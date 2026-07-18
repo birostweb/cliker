@@ -18,6 +18,7 @@ class PlayerController extends AbstractController
     private const MAX_REBIRTH = 1_000_000;
     private const MAX_SCORE = PHP_INT_MAX;
     private const MAX_TIME_SECONDS = 24 * 60 * 60;
+    private const MAX_TROPHY_COUNT = 1_000;
 
     #[Route('/api/leaderboard', name: 'api_leaderboard_get', methods: ['GET'])]
     public function getLeaderboard(Request $request, PlayerRepository $playerRepository): JsonResponse
@@ -32,6 +33,8 @@ class PlayerController extends AbstractController
             'rebirths' => $player->getRebirth(),
             'score' => $player->getScore(),
             'timeSeconds' => $player->getTimeSeconds(),
+            'activeSeconds' => $player->getActiveSeconds(),
+            'trophies' => $player->getTrophyCount(),
             'createdAt' => $player->getCreatedAt()?->format(\DateTimeInterface::ATOM),
         ], $runs);
 
@@ -53,16 +56,29 @@ class PlayerController extends AbstractController
         $rebirths = (int) ($payload['rebirths'] ?? -1);
         $score = (int) ($payload['score'] ?? -1);
         $timeSeconds = (int) ($payload['timeSeconds'] ?? -1);
+        $activeSeconds = (int) ($payload['activeSeconds'] ?? 0);
+        $trophies = (int) ($payload['trophies'] ?? 0);
 
-        if ($rebirths > self::MAX_REBIRTH || $score > self::MAX_SCORE || $timeSeconds > self::MAX_TIME_SECONDS) {
+        if (
+            $rebirths > self::MAX_REBIRTH
+            || $score > self::MAX_SCORE
+            || $timeSeconds > self::MAX_TIME_SECONDS
+            || $activeSeconds > self::MAX_TIME_SECONDS
+            || $trophies > self::MAX_TROPHY_COUNT
+        ) {
             return $this->json(['error' => 'Submitted values are out of allowed range'], 422);
         }
+
+        // Active (window-focused) time can never exceed total elapsed time.
+        $activeSeconds = min($activeSeconds, max($timeSeconds, 0));
 
         $player = new Player();
         $player->setName($name);
         $player->setRebirth($rebirths);
         $player->setScore($score);
         $player->setTimeSeconds($timeSeconds);
+        $player->setActiveSeconds($activeSeconds);
+        $player->setTrophyCount($trophies);
 
         $errors = $validator->validate($player);
         if (count($errors) > 0) {
@@ -83,6 +99,8 @@ class PlayerController extends AbstractController
             'rebirths' => $player->getRebirth(),
             'score' => $player->getScore(),
             'timeSeconds' => $player->getTimeSeconds(),
+            'activeSeconds' => $player->getActiveSeconds(),
+            'trophies' => $player->getTrophyCount(),
             'createdAt' => $player->getCreatedAt()?->format(\DateTimeInterface::ATOM),
         ], 201);
     }

@@ -17,11 +17,13 @@ function freshUpgrades() {
 const counter = ref(0)
 const totalEarned = ref(0)
 const totalSpent = ref(0)
+const totalClicks = ref(0)
 const upgrades = ref(freshUpgrades())
 const rebirth = ref(0)
 const rebirthTimestamps = ref([]) // seconds-since-start of each rebirth
 const gameStarted = ref(false)
 const sessionElapsedSeconds = ref(0)
+const activePlaySeconds = ref(0) // sessionElapsedSeconds minus time the tab/window was hidden
 const unlockedIds = reactive(new Set())
 const leaderboardSubmitted = ref(false)
 const leaderboardRank = ref(null)
@@ -43,11 +45,13 @@ function snapshot() {
     counter: counter.value,
     totalEarned: totalEarned.value,
     totalSpent: totalSpent.value,
+    totalClicks: totalClicks.value,
     upgrades: upgrades.value,
     rebirth: rebirth.value,
     rebirthTimestamps: rebirthTimestamps.value,
     gameStarted: gameStarted.value,
     sessionElapsedSeconds: sessionElapsedSeconds.value,
+    activePlaySeconds: activePlaySeconds.value,
     unlockedIds: Array.from(unlockedIds),
     leaderboardSubmitted: leaderboardSubmitted.value,
     leaderboardRank: leaderboardRank.value,
@@ -65,6 +69,7 @@ function restore() {
   counter.value = data.counter ?? 0
   totalEarned.value = data.totalEarned ?? 0
   totalSpent.value = data.totalSpent ?? 0
+  totalClicks.value = data.totalClicks ?? 0
   upgrades.value = Array.isArray(data.upgrades) && data.upgrades.length === UPGRADE_BASE.length
     ? data.upgrades
     : freshUpgrades()
@@ -72,6 +77,7 @@ function restore() {
   rebirthTimestamps.value = data.rebirthTimestamps ?? []
   gameStarted.value = data.gameStarted ?? false
   sessionElapsedSeconds.value = data.sessionElapsedSeconds ?? 0
+  activePlaySeconds.value = data.activePlaySeconds ?? 0
   ;(data.unlockedIds ?? []).forEach((id) => unlockedIds.add(id))
   leaderboardSubmitted.value = data.leaderboardSubmitted ?? false
   leaderboardRank.value = data.leaderboardRank ?? null
@@ -84,9 +90,28 @@ const totalUpgradeLevels = computed(() =>
   upgrades.value.reduce((sum, u) => sum + u.level, 0)
 )
 
-const totalCps = computed(() =>
+const baseCps = computed(() =>
   upgrades.value.reduce((sum, u, i) => sum + u.level * UPGRADE_BASE[i].cps, 0)
 )
+
+// Permanent bonuses granted by unlocked trophies (see achievements.js `reward`).
+// Stack additively across every unlocked trophy that has a reward.
+const clickBonusMultiplier = computed(() =>
+  1 + achievementDefs.reduce((sum, def) => {
+    if (!def.reward || !unlockedIds.has(def.id)) return sum
+    return def.reward.type === 'click' || def.reward.type === 'both' ? sum + def.reward.value : sum
+  }, 0)
+)
+
+const cpsBonusMultiplier = computed(() =>
+  1 + achievementDefs.reduce((sum, def) => {
+    if (!def.reward || !unlockedIds.has(def.id)) return sum
+    return def.reward.type === 'cps' || def.reward.type === 'both' ? sum + def.reward.value : sum
+  }, 0)
+)
+
+const totalCps = computed(() => baseCps.value * cpsBonusMultiplier.value)
+const clickAmount = computed(() => (1 + rebirth.value * 3) * clickBonusMultiplier.value)
 
 const firstRebirthAtSeconds = computed(() =>
   rebirthTimestamps.value.length > 0 ? rebirthTimestamps.value[0] : null
@@ -107,17 +132,21 @@ function buildAchievementState() {
     counter: counter.value,
     totalEarned: totalEarned.value,
     totalSpent: totalSpent.value,
+    totalClicks: totalClicks.value,
     upgrades: upgrades.value,
     totalUpgradeLevels: totalUpgradeLevels.value,
+    cps: baseCps.value,
     rebirth: rebirth.value,
     idleMs: idleMs.value,
     maxClicksInWindow: maxClicksInWindow.value,
     firstRebirthAtSeconds: firstRebirthAtSeconds.value,
     fastestRebirthGapMs: fastestRebirthGapMs.value,
     sessionElapsedSeconds: sessionElapsedSeconds.value,
+    activePlaySeconds: activePlaySeconds.value,
     leaderboardSubmitted: leaderboardSubmitted.value,
     leaderboardRank: leaderboardRank.value,
     konamiUnlocked: konamiUnlocked.value,
+    unlockedCount: unlockedIds.size,
   }
 }
 
@@ -137,7 +166,8 @@ function addMoney(amount) {
 }
 
 function doClick() {
-  addMoney(1 + rebirth.value * 3)
+  addMoney(clickAmount.value)
+  totalClicks.value++
   const now = Date.now()
   lastClickTime.value = now
   idleMs.value = 0
@@ -178,6 +208,8 @@ function submitCurrentRun(name) {
     rebirths: rebirth.value,
     score: Math.floor(totalEarned.value),
     timeSeconds: sessionElapsedSeconds.value,
+    activeSeconds: activePlaySeconds.value,
+    trophies: unlockedIds.size,
   }).then((result) => {
     leaderboardSubmitted.value = true
     syncAchievements()
@@ -200,11 +232,13 @@ function resetProgress() {
   counter.value = 0
   totalEarned.value = 0
   totalSpent.value = 0
+  totalClicks.value = 0
   upgrades.value = freshUpgrades()
   rebirth.value = 0
   rebirthTimestamps.value = []
   gameStarted.value = false
   sessionElapsedSeconds.value = 0
+  activePlaySeconds.value = 0
   unlockedIds.clear()
   leaderboardSubmitted.value = false
   leaderboardRank.value = null
@@ -214,10 +248,16 @@ function resetProgress() {
   clearSave()
 }
 
-// Tick every second: session timer + AFK detection, both need wall-clock time
-// regardless of whether the player is actively clicking.
+// Tick every second: session timer, AFK detection and passive CPS income,
+// all need wall-clock time regardless of whether the player is actively clicking.
 setInterval(() => {
-  if (gameStarted.value) sessionElapsedSeconds.value++
+  if (gameStarted.value) {
+    sessionElapsedSeconds.value++
+    if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
+      activePlaySeconds.value++
+    }
+    if (totalCps.value > 0) addMoney(totalCps.value)
+  }
   idleMs.value = Date.now() - lastClickTime.value
   syncAchievements()
 }, AFK_CHECK_INTERVAL_MS)
@@ -229,13 +269,17 @@ export function useGameState() {
     counter,
     totalEarned,
     totalSpent,
+    totalClicks,
     upgrades,
     rebirth,
     rebirthPrice,
     totalCps,
+    clickBonusMultiplier,
+    cpsBonusMultiplier,
     totalUpgradeLevels,
     gameStarted,
     sessionElapsedSeconds,
+    activePlaySeconds,
     unlockedIds,
     leaderboardSubmitted,
     leaderboardRank,

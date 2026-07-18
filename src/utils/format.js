@@ -7,7 +7,8 @@ export function formatNumber(n) {
 }
 
 export function formatDuration(totalSeconds) {
-  const m = Math.floor(totalSeconds / 60)
-  const s = Math.floor(totalSeconds % 60)
+  const safeSeconds = Number.isFinite(totalSeconds) ? totalSeconds : 0
+  const m = Math.floor(safeSeconds / 60)
+  const s = Math.floor(safeSeconds % 60)
   return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
 }

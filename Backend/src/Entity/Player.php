@@ -31,6 +31,14 @@ class Player
     private ?int $timeSeconds = null;
 
     #[ORM\Column]
+    #[Assert\PositiveOrZero]
+    private ?int $activeSeconds = null;
+
+    #[ORM\Column]
+    #[Assert\PositiveOrZero]
+    private ?int $trophyCount = null;
+
+    #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
     public function __construct()
@@ -85,6 +93,28 @@ class Player
     public function setTimeSeconds(int $timeSeconds): self
     {
         $this->timeSeconds = $timeSeconds;
+        return $this;
+    }
+
+    public function getActiveSeconds(): ?int
+    {
+        return $this->activeSeconds;
+    }
+
+    public function setActiveSeconds(int $activeSeconds): self
+    {
+        $this->activeSeconds = $activeSeconds;
+        return $this;
+    }
+
+    public function getTrophyCount(): ?int
+    {
+        return $this->trophyCount;
+    }
+
+    public function setTrophyCount(int $trophyCount): self
+    {
+        $this->trophyCount = $trophyCount;
         return $this;
     }
 

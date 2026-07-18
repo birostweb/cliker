@@ -20,9 +20,9 @@ export function fetchLeaderboard(limit = 20) {
   return request(`/api/leaderboard?limit=${limit}`)
 }
 
-export function submitRun({ name, rebirths, score, timeSeconds }) {
+export function submitRun({ name, rebirths, score, timeSeconds, activeSeconds, trophies }) {
   return request('/api/leaderboard', {
     method: 'POST',
-    body: JSON.stringify({ name, rebirths, score, timeSeconds }),
+    body: JSON.stringify({ name, rebirths, score, timeSeconds, activeSeconds, trophies }),
   })
 }
