@@ -16,13 +16,22 @@ class PlayerRepository extends ServiceEntityRepository
         parent::__construct($registry, Player::class);
     }
 
+    private const SORT_COLUMNS = [
+        'time' => ['field' => 'p.timeSeconds', 'direction' => 'ASC'],
+        'rebirths' => ['field' => 'p.rebirth', 'direction' => 'DESC'],
+        'score' => ['field' => 'p.score', 'direction' => 'DESC'],
+        'trophies' => ['field' => 'p.trophyCount', 'direction' => 'DESC'],
+    ];
+
     /**
      * @return Player[]
      */
-    public function findTopRuns(int $limit): array
+    public function findTopRuns(int $limit, string $sort = 'time'): array
     {
+        $column = self::SORT_COLUMNS[$sort] ?? self::SORT_COLUMNS['time'];
+
         return $this->createQueryBuilder('p')
-            ->orderBy('p.timeSeconds', 'ASC')
+            ->orderBy($column['field'], $column['direction'])
             ->setMaxResults($limit)
             ->getQuery()
             ->getResult();

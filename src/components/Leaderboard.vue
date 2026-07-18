@@ -8,19 +8,23 @@ import { useGameState } from '../composables/useGameState.js'
 import { formatNumber, formatDuration } from '../utils/format.js'
 
 const { t } = useI18n()
-const { showLeaderboard, rebirth, leaderboardSubmitted, submitCurrentRun, setLeaderboardRank } = useGameState()
+const { showLeaderboard, rebirth, leaderboardRunId, submitCurrentRun, setLeaderboardRank } = useGameState()
+
+const SORTS = ['time', 'rebirths', 'score', 'trophies']
 
 const runs = ref([])
 const loading = ref(false)
 const error = ref(false)
 const playerName = ref('')
 const submitState = ref('idle') // idle | sending | done | error
+const wasUpdate = ref(false) // which message/label the last completed submit was
+const activeSort = ref('time')
 
 async function load() {
   loading.value = true
   error.value = false
   try {
-    runs.value = await fetchLeaderboard(20)
+    runs.value = await fetchLeaderboard(20, activeSort.value)
   } catch {
     error.value = true
   } finally {
@@ -33,14 +37,25 @@ function open() {
   load()
 }
 
+function selectSort(sort) {
+  if (sort === activeSort.value) return
+  activeSort.value = sort
+  load()
+}
+
 async function onSubmit() {
   if (!playerName.value.trim()) return
   submitState.value = 'sending'
+  const isUpdate = !!leaderboardRunId.value
   try {
     const result = await submitCurrentRun(playerName.value.trim())
     await load()
-    const rank = runs.value.findIndex((r) => r.id === result.id)
+    // rank is always tracked against the fastest-time ranking, the game's
+    // primary/flagship leaderboard, regardless of which tab is open.
+    const timeRuns = activeSort.value === 'time' ? runs.value : await fetchLeaderboard(20, 'time')
+    const rank = timeRuns.findIndex((r) => r.id === result.id)
     if (rank !== -1) setLeaderboardRank(rank + 1)
+    wasUpdate.value = isUpdate
     submitState.value = 'done'
   } catch {
     submitState.value = 'error'
@@ -58,8 +73,22 @@ async function onSubmit() {
   <Modal v-if="showLeaderboard" :title="t('leaderboard.title')" max-width="max-w-2xl" @close="showLeaderboard = false">
     <p class="text-sm text-muted mb-4">{{ t('leaderboard.subtitle') }}</p>
 
-    <div v-if="rebirth >= 1 && !leaderboardSubmitted" class="mb-5 p-4 rounded-xl border border-accent/40 bg-accent-soft space-y-3">
-      <p class="text-sm font-semibold text-ink">{{ t('game.submitPrompt') }}</p>
+    <div class="flex flex-wrap gap-2 mb-4">
+      <button
+          v-for="sort in SORTS"
+          :key="sort"
+          @click="selectSort(sort)"
+          :class="[
+            'px-3 py-1.5 rounded-full text-xs font-semibold border transition',
+            activeSort === sort ? 'bg-accent text-black border-accent' : 'border-border text-muted hover:text-ink',
+          ]"
+      >
+        {{ t(`leaderboard.sort.${sort}`) }}
+      </button>
+    </div>
+
+    <div v-if="rebirth >= 1" class="mb-5 p-4 rounded-xl border border-accent/40 bg-accent-soft space-y-3">
+      <p class="text-sm font-semibold text-ink">{{ leaderboardRunId ? t('game.updatePrompt') : t('game.submitPrompt') }}</p>
       <div class="flex gap-2">
         <input
             v-model="playerName"
@@ -68,10 +97,10 @@ async function onSubmit() {
             class="flex-1 min-w-0 px-3 py-2 rounded-lg bg-panel border border-border text-ink text-sm focus:outline-none focus:border-accent"
         />
         <BaseButton size="sm" :disabled="submitState === 'sending'" @click="onSubmit">
-          {{ t('game.submit') }}
+          {{ leaderboardRunId ? t('game.update') : t('game.submit') }}
         </BaseButton>
       </div>
-      <p v-if="submitState === 'done'" class="text-xs text-success">{{ t('game.submitted') }}</p>
+      <p v-if="submitState === 'done'" class="text-xs text-success">{{ wasUpdate ? t('game.updated') : t('game.submitted') }}</p>
       <p v-if="submitState === 'error'" class="text-xs text-red-400">{{ t('game.submitError') }}</p>
     </div>
 
@@ -84,11 +113,11 @@ async function onSubmit() {
           <tr class="text-muted text-left border-b border-border">
             <th class="py-2 pr-2">{{ t('leaderboard.rank') }}</th>
             <th class="py-2 pr-2">{{ t('leaderboard.name') }}</th>
-            <th class="py-2 pr-2">{{ t('leaderboard.time') }}</th>
+            <th :class="['py-2 pr-2', activeSort === 'time' && 'text-accent-strong']">{{ t('leaderboard.time') }}</th>
             <th class="py-2 pr-2">{{ t('leaderboard.activeTime') }}</th>
-            <th class="py-2 pr-2">{{ t('leaderboard.rebirths') }}</th>
-            <th class="py-2 pr-2">{{ t('leaderboard.trophies') }}</th>
-            <th class="py-2">{{ t('leaderboard.score') }}</th>
+            <th :class="['py-2 pr-2', activeSort === 'rebirths' && 'text-accent-strong']">{{ t('leaderboard.rebirths') }}</th>
+            <th :class="['py-2 pr-2', activeSort === 'trophies' && 'text-accent-strong']">{{ t('leaderboard.trophies') }}</th>
+            <th :class="['py-2', activeSort === 'score' && 'text-accent-strong']">{{ t('leaderboard.score') }}</th>
           </tr>
         </thead>
         <tbody>

@@ -27,9 +27,12 @@
     "rebirthPerClick": "+3 / click",
     "level": "Lvl {level}",
     "submitPrompt": "Save your run to the leaderboard?",
+    "updatePrompt": "Update your leaderboard run with your current progress?",
     "namePlaceholder": "Your name",
     "submit": "Submit",
+    "update": "Update",
     "submitted": "Run submitted to the leaderboard!",
+    "updated": "Run updated!",
     "submitError": "Couldn't submit your score right now.",
     "upgradeNames": [
       "Broken Keyboard", "Gaming Mouse", "HD Screen", "Local Server", "PC Farm",
@@ -74,18 +77,24 @@
   },
   "leaderboard": {
     "title": "Leaderboard",
-    "subtitle": "Fastest runs to reach the Rebirth goal",
+    "subtitle": "Top runs, by category. Money and trophies count your cumulative progress across all rebirths.",
     "rank": "#",
     "name": "Player",
     "time": "Time",
     "activeTime": "Active time",
     "rebirths": "Rebirths",
     "trophies": "Trophies",
-    "score": "Score",
+    "score": "Money earned",
     "empty": "No runs recorded yet. Be the first!",
     "loading": "Loading leaderboard…",
     "error": "Couldn't load the leaderboard.",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "sort": {
+      "time": "⏱ Fastest",
+      "rebirths": "🔄 Rebirths",
+      "score": "💰 Money",
+      "trophies": "🏆 Trophies"
+    }
   },
   "achievements": {
     "click_1": { "name": "First Step", "description": "Make your first click" },

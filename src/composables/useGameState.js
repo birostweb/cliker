@@ -2,7 +2,7 @@ import { ref, reactive, computed } from 'vue'
 import { UPGRADE_BASE, UPGRADE_MULTIPLIER, REBIRTH_BASE_PRICE } from '../data/upgrades.js'
 import { achievements as achievementDefs } from '../data/achievements.js'
 import { useGameSave } from './useGameSave.js'
-import { submitRun } from '../services/api.js'
+import { submitRun, updateRun } from '../services/api.js'
 
 const SAVE_KEY = 'clicker-save-v1'
 const SPEED_CLICK_WINDOW_MS = 15_000
@@ -26,6 +26,7 @@ const sessionElapsedSeconds = ref(0)
 const activePlaySeconds = ref(0) // sessionElapsedSeconds minus time the tab/window was hidden
 const unlockedIds = reactive(new Set())
 const leaderboardSubmitted = ref(false)
+const leaderboardRunId = ref(null)
 const leaderboardRank = ref(null)
 const konamiUnlocked = ref(false)
 
@@ -54,6 +55,7 @@ function snapshot() {
     activePlaySeconds: activePlaySeconds.value,
     unlockedIds: Array.from(unlockedIds),
     leaderboardSubmitted: leaderboardSubmitted.value,
+    leaderboardRunId: leaderboardRunId.value,
     leaderboardRank: leaderboardRank.value,
     konamiUnlocked: konamiUnlocked.value,
   }
@@ -80,6 +82,7 @@ function restore() {
   activePlaySeconds.value = data.activePlaySeconds ?? 0
   ;(data.unlockedIds ?? []).forEach((id) => unlockedIds.add(id))
   leaderboardSubmitted.value = data.leaderboardSubmitted ?? false
+  leaderboardRunId.value = data.leaderboardRunId ?? null
   leaderboardRank.value = data.leaderboardRank ?? null
   konamiUnlocked.value = data.konamiUnlocked ?? false
 }
@@ -203,15 +206,24 @@ function startGame() {
 }
 
 function submitCurrentRun(name) {
-  return submitRun({
+  const payload = {
     name,
     rebirths: rebirth.value,
     score: Math.floor(totalEarned.value),
     timeSeconds: sessionElapsedSeconds.value,
     activeSeconds: activePlaySeconds.value,
     trophies: unlockedIds.size,
-  }).then((result) => {
+  }
+  // Refresh the same leaderboard row in place once a first run exists,
+  // instead of freezing the entry at whatever the state was at first
+  // submission (e.g. only 1 rebirth) every time the player keeps playing.
+  const request = leaderboardRunId.value
+    ? updateRun(leaderboardRunId.value, payload)
+    : submitRun(payload)
+
+  return request.then((result) => {
     leaderboardSubmitted.value = true
+    leaderboardRunId.value = result.id
     syncAchievements()
     return result
   })
@@ -241,6 +253,7 @@ function resetProgress() {
   activePlaySeconds.value = 0
   unlockedIds.clear()
   leaderboardSubmitted.value = false
+  leaderboardRunId.value = null
   leaderboardRank.value = null
   konamiUnlocked.value = false
   clickTimes.value = []
@@ -282,6 +295,7 @@ export function useGameState() {
     activePlaySeconds,
     unlockedIds,
     leaderboardSubmitted,
+    leaderboardRunId,
     leaderboardRank,
     showTrophy,
     showLeaderboard,

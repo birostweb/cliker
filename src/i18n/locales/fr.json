@@ -27,9 +27,12 @@
     "rebirthPerClick": "+3 / clic",
     "level": "Niv. {level}",
     "submitPrompt": "Enregistrer ton run dans le classement ?",
+    "updatePrompt": "Mettre à jour ton run dans le classement avec ta progression actuelle ?",
     "namePlaceholder": "Ton pseudo",
     "submit": "Envoyer",
+    "update": "Mettre à jour",
     "submitted": "Run envoyé au classement !",
+    "updated": "Run mis à jour !",
     "submitError": "Impossible d'envoyer ton score pour le moment.",
     "upgradeNames": [
       "Clavier Cassé", "Souris Gaming", "Écran HD", "Serveur Local", "Ferme de PC",
@@ -74,18 +77,24 @@
   },
   "leaderboard": {
     "title": "Classement",
-    "subtitle": "Les runs les plus rapides pour atteindre l'objectif de Rebirth",
+    "subtitle": "Classement des meilleurs runs, par catégorie. Argent et trophées comptent la progression cumulée sur tous tes rebirths.",
     "rank": "#",
     "name": "Joueur",
     "time": "Temps",
     "activeTime": "Temps actif",
     "rebirths": "Rebirths",
     "trophies": "Trophées",
-    "score": "Score",
+    "score": "Argent gagné",
     "empty": "Aucun run enregistré pour l'instant. Sois le premier !",
     "loading": "Chargement du classement…",
     "error": "Impossible de charger le classement.",
-    "refresh": "Actualiser"
+    "refresh": "Actualiser",
+    "sort": {
+      "time": "⏱ Plus rapide",
+      "rebirths": "🔄 Rebirths",
+      "score": "💰 Argent",
+      "trophies": "🏆 Trophées"
+    }
   },
   "achievements": {
     "click_1": { "name": "Premier pas", "description": "Fais ton premier clic" },

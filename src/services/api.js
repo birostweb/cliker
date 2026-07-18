@@ -16,13 +16,23 @@ async function request(path, options = {}) {
   return body
 }
 
-export function fetchLeaderboard(limit = 20) {
-  return request(`/api/leaderboard?limit=${limit}`)
+export function fetchLeaderboard(limit = 20, sort = 'time') {
+  return request(`/api/leaderboard?limit=${limit}&sort=${sort}`)
 }
 
 export function submitRun({ name, rebirths, score, timeSeconds, activeSeconds, trophies }) {
   return request('/api/leaderboard', {
     method: 'POST',
+    body: JSON.stringify({ name, rebirths, score, timeSeconds, activeSeconds, trophies }),
+  })
+}
+
+// Refreshes a previously submitted run in place (id remembered from the
+// first submit) so replaying/rebirthing more doesn't leave a stale duplicate
+// entry behind on the leaderboard.
+export function updateRun(id, { name, rebirths, score, timeSeconds, activeSeconds, trophies }) {
+  return request(`/api/leaderboard/${id}`, {
+    method: 'PUT',
     body: JSON.stringify({ name, rebirths, score, timeSeconds, activeSeconds, trophies }),
   })
 }

@@ -19,26 +19,20 @@ class PlayerController extends AbstractController
     private const MAX_SCORE = PHP_INT_MAX;
     private const MAX_TIME_SECONDS = 24 * 60 * 60;
     private const MAX_TROPHY_COUNT = 1_000;
+    private const ALLOWED_SORTS = ['time', 'rebirths', 'score', 'trophies'];
 
     #[Route('/api/leaderboard', name: 'api_leaderboard_get', methods: ['GET'])]
     public function getLeaderboard(Request $request, PlayerRepository $playerRepository): JsonResponse
     {
         $limit = min(self::MAX_LIMIT, max(1, $request->query->getInt('limit', 20)));
+        $sort = $request->query->get('sort', 'time');
+        if (!in_array($sort, self::ALLOWED_SORTS, true)) {
+            $sort = 'time';
+        }
 
-        $runs = $playerRepository->findTopRuns($limit);
+        $runs = $playerRepository->findTopRuns($limit, $sort);
 
-        $data = array_map(static fn (Player $player) => [
-            'id' => $player->getId(),
-            'name' => $player->getName(),
-            'rebirths' => $player->getRebirth(),
-            'score' => $player->getScore(),
-            'timeSeconds' => $player->getTimeSeconds(),
-            'activeSeconds' => $player->getActiveSeconds(),
-            'trophies' => $player->getTrophyCount(),
-            'createdAt' => $player->getCreatedAt()?->format(\DateTimeInterface::ATOM),
-        ], $runs);
-
-        return $this->json($data);
+        return $this->json(array_map([$this, 'serialize'], $runs));
     }
 
     #[Route('/api/leaderboard', name: 'api_leaderboard_post', methods: ['POST'])]
@@ -52,7 +46,58 @@ class PlayerController extends AbstractController
             return $this->json(['error' => 'Invalid JSON body'], 400);
         }
 
-        $name = trim((string) ($payload['name'] ?? ''));
+        $player = new Player();
+        $player->setName(trim((string) ($payload['name'] ?? '')));
+
+        $error = $this->fillFromPayload($player, $payload, $validator);
+        if ($error) {
+            return $error;
+        }
+
+        $entityManager->persist($player);
+        $entityManager->flush();
+
+        return $this->json($this->serialize($player), 201);
+    }
+
+    // A player's browser remembers the id it got back from the initial POST
+    // and calls this to refresh the SAME run in place (more rebirths, more
+    // playtime, more trophies) instead of leaving a stale first-rebirth row
+    // behind and piling up duplicates every time they resubmit.
+    #[Route('/api/leaderboard/{id}', name: 'api_leaderboard_put', methods: ['PUT'])]
+    public function updateRun(
+        int $id,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        PlayerRepository $playerRepository,
+        ValidatorInterface $validator,
+    ): JsonResponse {
+        $player = $playerRepository->find($id);
+        if (!$player) {
+            return $this->json(['error' => 'Run not found'], 404);
+        }
+
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json(['error' => 'Invalid JSON body'], 400);
+        }
+
+        if (array_key_exists('name', $payload)) {
+            $player->setName(trim((string) $payload['name']));
+        }
+
+        $error = $this->fillFromPayload($player, $payload, $validator);
+        if ($error) {
+            return $error;
+        }
+
+        $entityManager->flush();
+
+        return $this->json($this->serialize($player));
+    }
+
+    private function fillFromPayload(Player $player, array $payload, ValidatorInterface $validator): ?JsonResponse
+    {
         $rebirths = (int) ($payload['rebirths'] ?? -1);
         $score = (int) ($payload['score'] ?? -1);
         $timeSeconds = (int) ($payload['timeSeconds'] ?? -1);
@@ -72,8 +117,6 @@ class PlayerController extends AbstractController
         // Active (window-focused) time can never exceed total elapsed time.
         $activeSeconds = min($activeSeconds, max($timeSeconds, 0));
 
-        $player = new Player();
-        $player->setName($name);
         $player->setRebirth($rebirths);
         $player->setScore($score);
         $player->setTimeSeconds($timeSeconds);
@@ -90,10 +133,12 @@ class PlayerController extends AbstractController
             return $this->json(['error' => 'Validation failed', 'details' => $messages], 422);
         }
 
-        $entityManager->persist($player);
-        $entityManager->flush();
+        return null;
+    }
 
-        return $this->json([
+    private function serialize(Player $player): array
+    {
+        return [
             'id' => $player->getId(),
             'name' => $player->getName(),
             'rebirths' => $player->getRebirth(),
@@ -102,6 +147,6 @@ class PlayerController extends AbstractController
             'activeSeconds' => $player->getActiveSeconds(),
             'trophies' => $player->getTrophyCount(),
             'createdAt' => $player->getCreatedAt()?->format(\DateTimeInterface::ATOM),
-        ], 201);
+        ];
     }
 }
