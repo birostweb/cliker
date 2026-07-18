@@ -14,7 +14,7 @@
       { "title": "Gameplay", "desc": "Click to earn money and upgrade your gear. Each upgrade increases your earnings per second (CPS)." },
       { "title": "Goals & Trophies", "desc": "Reach goals to unlock unique trophies and track your progress." },
       { "title": "Rebirth", "desc": "Reset your upgrades but get a permanent bonus per click to progress faster and climb the leaderboard." },
-      { "title": "Timer & Leaderboard", "desc": "Use the timer to finish as fast as possible and grab the best leaderboard spot." },
+      { "title": "Timer & Leaderboard", "desc": "The leaderboard rewards active playtime: the longer you stay playing, the higher you climb." },
       { "title": "Mobile", "desc": "Access your upgrades directly from your phone and keep progressing anywhere." }
     ]
   },
@@ -33,6 +33,7 @@
     "update": "Update",
     "submitted": "Run submitted to the leaderboard!",
     "updated": "Run updated!",
+    "autoUpdateHint": "Your run auto-updates every 5 minutes.",
     "submitError": "Couldn't submit your score right now.",
     "upgradeNames": [
       "Broken Keyboard", "Gaming Mouse", "HD Screen", "Local Server", "PC Farm",
@@ -90,7 +91,7 @@
     "error": "Couldn't load the leaderboard.",
     "refresh": "Refresh",
     "sort": {
-      "time": "⏱ Fastest",
+      "active": "🎮 Active time",
       "rebirths": "🔄 Rebirths",
       "score": "💰 Money",
       "trophies": "🏆 Trophies"

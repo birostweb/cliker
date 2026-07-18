@@ -19,15 +19,15 @@ class PlayerController extends AbstractController
     private const MAX_SCORE = PHP_INT_MAX;
     private const MAX_TIME_SECONDS = 24 * 60 * 60;
     private const MAX_TROPHY_COUNT = 1_000;
-    private const ALLOWED_SORTS = ['time', 'rebirths', 'score', 'trophies'];
+    private const ALLOWED_SORTS = ['active', 'rebirths', 'score', 'trophies'];
 
     #[Route('/api/leaderboard', name: 'api_leaderboard_get', methods: ['GET'])]
     public function getLeaderboard(Request $request, PlayerRepository $playerRepository): JsonResponse
     {
         $limit = min(self::MAX_LIMIT, max(1, $request->query->getInt('limit', 20)));
-        $sort = $request->query->get('sort', 'time');
+        $sort = $request->query->get('sort', 'active');
         if (!in_array($sort, self::ALLOWED_SORTS, true)) {
-            $sort = 'time';
+            $sort = 'active';
         }
 
         $runs = $playerRepository->findTopRuns($limit, $sort);

@@ -8,17 +8,17 @@ import { useGameState } from '../composables/useGameState.js'
 import { formatNumber, formatDuration } from '../utils/format.js'
 
 const { t } = useI18n()
-const { showLeaderboard, rebirth, leaderboardRunId, submitCurrentRun, setLeaderboardRank } = useGameState()
+const { showLeaderboard, rebirth, leaderboardRunId, leaderboardPlayerName, submitCurrentRun, setLeaderboardRank } = useGameState()
 
-const SORTS = ['time', 'rebirths', 'score', 'trophies']
+const SORTS = ['active', 'rebirths', 'score', 'trophies']
 
 const runs = ref([])
 const loading = ref(false)
 const error = ref(false)
-const playerName = ref('')
+const playerName = ref(leaderboardPlayerName.value)
 const submitState = ref('idle') // idle | sending | done | error
 const wasUpdate = ref(false) // which message/label the last completed submit was
-const activeSort = ref('time')
+const activeSort = ref('active')
 
 async function load() {
   loading.value = true
@@ -50,10 +50,10 @@ async function onSubmit() {
   try {
     const result = await submitCurrentRun(playerName.value.trim())
     await load()
-    // rank is always tracked against the fastest-time ranking, the game's
+    // rank is always tracked against the active-playtime ranking, the game's
     // primary/flagship leaderboard, regardless of which tab is open.
-    const timeRuns = activeSort.value === 'time' ? runs.value : await fetchLeaderboard(20, 'time')
-    const rank = timeRuns.findIndex((r) => r.id === result.id)
+    const activeRuns = activeSort.value === 'active' ? runs.value : await fetchLeaderboard(20, 'active')
+    const rank = activeRuns.findIndex((r) => r.id === result.id)
     if (rank !== -1) setLeaderboardRank(rank + 1)
     wasUpdate.value = isUpdate
     submitState.value = 'done'
@@ -102,6 +102,7 @@ async function onSubmit() {
       </div>
       <p v-if="submitState === 'done'" class="text-xs text-success">{{ wasUpdate ? t('game.updated') : t('game.submitted') }}</p>
       <p v-if="submitState === 'error'" class="text-xs text-red-400">{{ t('game.submitError') }}</p>
+      <p v-if="leaderboardRunId" class="text-xs text-muted">{{ t('game.autoUpdateHint') }}</p>
     </div>
 
     <div v-if="loading" class="text-center text-muted text-sm py-8">{{ t('leaderboard.loading') }}</div>
@@ -113,8 +114,8 @@ async function onSubmit() {
           <tr class="text-muted text-left border-b border-border">
             <th class="py-2 pr-2">{{ t('leaderboard.rank') }}</th>
             <th class="py-2 pr-2">{{ t('leaderboard.name') }}</th>
-            <th :class="['py-2 pr-2', activeSort === 'time' && 'text-accent-strong']">{{ t('leaderboard.time') }}</th>
-            <th class="py-2 pr-2">{{ t('leaderboard.activeTime') }}</th>
+            <th class="py-2 pr-2">{{ t('leaderboard.time') }}</th>
+            <th :class="['py-2 pr-2', activeSort === 'active' && 'text-accent-strong']">{{ t('leaderboard.activeTime') }}</th>
             <th :class="['py-2 pr-2', activeSort === 'rebirths' && 'text-accent-strong']">{{ t('leaderboard.rebirths') }}</th>
             <th :class="['py-2 pr-2', activeSort === 'trophies' && 'text-accent-strong']">{{ t('leaderboard.trophies') }}</th>
             <th :class="['py-2', activeSort === 'score' && 'text-accent-strong']">{{ t('leaderboard.score') }}</th>

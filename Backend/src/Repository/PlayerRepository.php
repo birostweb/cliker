@@ -17,7 +17,9 @@ class PlayerRepository extends ServiceEntityRepository
     }
 
     private const SORT_COLUMNS = [
-        'time' => ['field' => 'p.timeSeconds', 'direction' => 'ASC'],
+        // Ranks by time actually spent playing (window focused), not fastest
+        // completion -- rewards sustained engagement over speedrunning.
+        'active' => ['field' => 'p.activeSeconds', 'direction' => 'DESC'],
         'rebirths' => ['field' => 'p.rebirth', 'direction' => 'DESC'],
         'score' => ['field' => 'p.score', 'direction' => 'DESC'],
         'trophies' => ['field' => 'p.trophyCount', 'direction' => 'DESC'],
@@ -26,9 +28,9 @@ class PlayerRepository extends ServiceEntityRepository
     /**
      * @return Player[]
      */
-    public function findTopRuns(int $limit, string $sort = 'time'): array
+    public function findTopRuns(int $limit, string $sort = 'active'): array
     {
-        $column = self::SORT_COLUMNS[$sort] ?? self::SORT_COLUMNS['time'];
+        $column = self::SORT_COLUMNS[$sort] ?? self::SORT_COLUMNS['active'];
 
         return $this->createQueryBuilder('p')
             ->orderBy($column['field'], $column['direction'])

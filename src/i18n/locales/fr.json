@@ -14,7 +14,7 @@
       { "title": "Gameplay", "desc": "Clique pour gagner de l’argent et améliorer tes équipements. Chaque amélioration augmente tes gains par seconde (CPS)." },
       { "title": "Objectifs & Trophées", "desc": "Atteins les objectifs pour débloquer des trophées uniques et suivre ta progression." },
       { "title": "Rebirth", "desc": "Réinitialise tes améliorations mais reçois un bonus permanent au clic pour progresser plus vite et grimper dans le classement." },
-      { "title": "Timer & Classement", "desc": "Utilise le timer pour finir le jeu le plus rapidement possible et atteindre la meilleure place au classement." },
+      { "title": "Timer & Classement", "desc": "Le classement récompense le temps de jeu actif : plus tu restes à jouer, mieux tu grimpes." },
       { "title": "Mobile", "desc": "Accède aux améliorations directement depuis ton mobile et continue de progresser où que tu sois." }
     ]
   },
@@ -33,6 +33,7 @@
     "update": "Mettre à jour",
     "submitted": "Run envoyé au classement !",
     "updated": "Run mis à jour !",
+    "autoUpdateHint": "Ton run se met à jour automatiquement toutes les 5 minutes.",
     "submitError": "Impossible d'envoyer ton score pour le moment.",
     "upgradeNames": [
       "Clavier Cassé", "Souris Gaming", "Écran HD", "Serveur Local", "Ferme de PC",
@@ -90,7 +91,7 @@
     "error": "Impossible de charger le classement.",
     "refresh": "Actualiser",
     "sort": {
-      "time": "⏱ Plus rapide",
+      "active": "🎮 Temps actif",
       "rebirths": "🔄 Rebirths",
       "score": "💰 Argent",
       "trophies": "🏆 Trophées"

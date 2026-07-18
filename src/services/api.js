@@ -16,7 +16,7 @@ async function request(path, options = {}) {
   return body
 }
 
-export function fetchLeaderboard(limit = 20, sort = 'time') {
+export function fetchLeaderboard(limit = 20, sort = 'active') {
   return request(`/api/leaderboard?limit=${limit}&sort=${sort}`)
 }
 

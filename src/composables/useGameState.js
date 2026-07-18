@@ -7,6 +7,7 @@ import { submitRun, updateRun } from '../services/api.js'
 const SAVE_KEY = 'clicker-save-v1'
 const SPEED_CLICK_WINDOW_MS = 15_000
 const AFK_CHECK_INTERVAL_MS = 1000
+const LEADERBOARD_AUTO_UPDATE_MS = 300_000
 
 function freshUpgrades() {
   return UPGRADE_BASE.map((base) => ({ level: 0, price: base.price }))
@@ -27,6 +28,7 @@ const activePlaySeconds = ref(0) // sessionElapsedSeconds minus time the tab/win
 const unlockedIds = reactive(new Set())
 const leaderboardSubmitted = ref(false)
 const leaderboardRunId = ref(null)
+const leaderboardPlayerName = ref('')
 const leaderboardRank = ref(null)
 const konamiUnlocked = ref(false)
 
@@ -56,6 +58,7 @@ function snapshot() {
     unlockedIds: Array.from(unlockedIds),
     leaderboardSubmitted: leaderboardSubmitted.value,
     leaderboardRunId: leaderboardRunId.value,
+    leaderboardPlayerName: leaderboardPlayerName.value,
     leaderboardRank: leaderboardRank.value,
     konamiUnlocked: konamiUnlocked.value,
   }
@@ -83,6 +86,7 @@ function restore() {
   ;(data.unlockedIds ?? []).forEach((id) => unlockedIds.add(id))
   leaderboardSubmitted.value = data.leaderboardSubmitted ?? false
   leaderboardRunId.value = data.leaderboardRunId ?? null
+  leaderboardPlayerName.value = data.leaderboardPlayerName ?? ''
   leaderboardRank.value = data.leaderboardRank ?? null
   konamiUnlocked.value = data.konamiUnlocked ?? false
 }
@@ -224,8 +228,21 @@ function submitCurrentRun(name) {
   return request.then((result) => {
     leaderboardSubmitted.value = true
     leaderboardRunId.value = result.id
+    leaderboardPlayerName.value = name
     syncAchievements()
     return result
+  })
+}
+
+// Once a run has been submitted at least once, silently refresh it every
+// few minutes so the leaderboard reflects current progress (more rebirths,
+// money, trophies) without the player having to reopen the panel and click
+// "update" by hand every time.
+function autoUpdateLeaderboard() {
+  if (!gameStarted.value || !leaderboardRunId.value) return
+  submitCurrentRun(leaderboardPlayerName.value).catch(() => {
+    // Silent: a transient network hiccup shouldn't interrupt gameplay. The
+    // next scheduled tick (or the player's own "update" click) retries it.
   })
 }
 
@@ -254,6 +271,7 @@ function resetProgress() {
   unlockedIds.clear()
   leaderboardSubmitted.value = false
   leaderboardRunId.value = null
+  leaderboardPlayerName.value = ''
   leaderboardRank.value = null
   konamiUnlocked.value = false
   clickTimes.value = []
@@ -274,6 +292,8 @@ setInterval(() => {
   idleMs.value = Date.now() - lastClickTime.value
   syncAchievements()
 }, AFK_CHECK_INTERVAL_MS)
+
+setInterval(autoUpdateLeaderboard, LEADERBOARD_AUTO_UPDATE_MS)
 
 restore()
 
@@ -296,6 +316,7 @@ export function useGameState() {
     unlockedIds,
     leaderboardSubmitted,
     leaderboardRunId,
+    leaderboardPlayerName,
     leaderboardRank,
     showTrophy,
     showLeaderboard,
