@@ -1,13 +1,14 @@
 #!/bin/sh
-set +e
-echo ">>> Entrypoint demarre"
-echo ">>> Test connexion base..."
-php bin/console dbal:run-sql "SELECT 1" 2>&1
-echo ">>> Resultat test base (code: $?)"
-echo ">>> Lancement migrations..."
-php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration 2>&1
-echo ">>> Migrations terminees (code: $?)"
-php bin/console cache:clear --env=prod --no-debug 2>&1
-echo ">>> Cache clear termine (code: $?)"
-echo ">>> Demarrage Apache..."
+set -e
+
+echo ">>> Attente de la base de données..."
+until php bin/console dbal:run-sql "SELECT 1" >/dev/null 2>&1; do
+  echo "Base pas encore prête, nouvelle tentative dans 2s..."
+  sleep 2
+done
+echo ">>> Base prête."
+
+php bin/console doctrine:migrations:migrate --no-interaction --allow-no-migration
+php bin/console cache:clear --env=prod --no-debug
+
 exec "$@"
