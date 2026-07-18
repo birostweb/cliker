@@ -16,6 +16,18 @@ class PlayerRepository extends ServiceEntityRepository
         parent::__construct($registry, Player::class);
     }
 
+    /**
+     * @return Player[]
+     */
+    public function findTopRuns(int $limit): array
+    {
+        return $this->createQueryBuilder('p')
+            ->orderBy('p.timeSeconds', 'ASC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
     //    /**
     //     * @return Player[] Returns an array of Player objects
     //     */
