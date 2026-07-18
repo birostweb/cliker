@@ -96,6 +96,36 @@ class PlayerController extends AbstractController
         return $this->json($this->serialize($player));
     }
 
+    // Admin-only cleanup (e.g. removing test/spam entries). Requires the
+    // X-Admin-Token header to match the ADMIN_TOKEN env var -- there's no
+    // user accounts/auth system in this app, so this is the whole gate.
+    // Refuses everything if ADMIN_TOKEN isn't configured, rather than
+    // silently allowing open deletes.
+    #[Route('/api/leaderboard/{id}', name: 'api_leaderboard_delete', methods: ['DELETE'])]
+    public function deleteRun(
+        int $id,
+        Request $request,
+        EntityManagerInterface $entityManager,
+        PlayerRepository $playerRepository,
+    ): JsonResponse {
+        $expectedToken = $_ENV['ADMIN_TOKEN'] ?? null;
+        $providedToken = $request->headers->get('X-Admin-Token');
+
+        if (!$expectedToken || !$providedToken || !hash_equals($expectedToken, $providedToken)) {
+            return $this->json(['error' => 'Unauthorized'], 403);
+        }
+
+        $player = $playerRepository->find($id);
+        if (!$player) {
+            return $this->json(['error' => 'Run not found'], 404);
+        }
+
+        $entityManager->remove($player);
+        $entityManager->flush();
+
+        return $this->json(null, 204);
+    }
+
     private function fillFromPayload(Player $player, array $payload, ValidatorInterface $validator): ?JsonResponse
     {
         $rebirths = (int) ($payload['rebirths'] ?? -1);
